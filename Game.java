@@ -5,6 +5,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.security.InvalidParameterException;
+import java.util.Arrays;
 import java.util.HashMap;
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -17,7 +18,7 @@ public class Game extends JPanel implements KeyListener, MouseListener{
     public JFrame frame = new JFrame("Red Ball 4: Reinvented");
     public Platform[] platforms = {new Platform(0, 907, 875, 50, 0, "null"), new Platform(875, 907, 600, 50, 0, "null")};
     public Player player = new Player(25, 200, 50, 50, 0, "player", true);
-    public Enemy testEnemy = new Enemy(600, 857, 50, 50, 0, "enemy", true);
+    public static Enemy[] testEnemies = {new Enemy(600, 857, 50, 50, 0, "enemy", true)};
     public static Graphics2D g2d;
     public Game() {
         frame.setUndecorated(false);
@@ -34,8 +35,13 @@ public class Game extends JPanel implements KeyListener, MouseListener{
             frame.setSize(screenSize);
         }
         this.requestFocus();
+        this.setFocusTraversalKeysEnabled(false);
         timer = new Timer(16, e -> {
             repaint();
+            for (Enemy enemy : testEnemies) {
+                checkHitboxCollision(player, enemy.getHitbox());
+            }
+            //checkHurtboxCollision(player, testEnemy.getHurtbox());
         });
         timer.start();
     }
@@ -55,8 +61,10 @@ public class Game extends JPanel implements KeyListener, MouseListener{
             keys.put("Keys.A", true);
         } if(evt.getKeyCode() == KeyEvent.VK_D) {
             keys.put("Keys.D", true);
-        } if(evt.getKeyCode() == KeyEvent.VK_W) {
+        } if(evt.getKeyCode() == KeyEvent.VK_W || evt.getKeyCode() == KeyEvent.VK_SPACE) {
             keys.put("Keys.W", true);
+        } if(evt.getKeyCode() == KeyEvent.VK_TAB) {
+            keys.put("Keys.TAB", true);
         }
     }
     @Override
@@ -65,8 +73,10 @@ public class Game extends JPanel implements KeyListener, MouseListener{
             keys.put("Keys.A", false);
         } if(evt.getKeyCode() == KeyEvent.VK_D) {
             keys.put("Keys.D", false);
-        } if(evt.getKeyCode() == KeyEvent.VK_W) {
+        } if(evt.getKeyCode() == KeyEvent.VK_W || evt.getKeyCode() == KeyEvent.VK_SPACE) {
             keys.put("Keys.W", false);
+        } if(evt.getKeyCode() == KeyEvent.VK_TAB) {
+            keys.put("Keys.TAB", false);
         }
     }
     @Override
@@ -113,13 +123,23 @@ public class Game extends JPanel implements KeyListener, MouseListener{
             //g.drawImage(ImageRetriever.rotateImage(playerImage, player.getDirectionDegrees()), player.getPosition()[0], player.getPosition()[1] + 10, null);
         }
         //Handles Enemy Sprite
-        if(testEnemy.getImageName().equals("null") || false/*ImageRetriever.getImageFromName(testEnemy.getImageName()) == null*/) {
-            g.setColor(Color.GRAY);
-            g.fillRect(testEnemy.getPosition()[0], testEnemy.getPosition()[1], testEnemy.getSize()[0], testEnemy.getSize()[1]);
-        } else {
-            g.setColor(Color.GRAY);
-            g.fillRect(testEnemy.getPosition()[0], testEnemy.getPosition()[1], testEnemy.getSize()[0], testEnemy.getSize()[1]);
-            //g.drawImage(ImageRetriever.getImageFromName(testEnemy.getImageName()), testEnemy.getPosition()[0], testEnemy.getPosition()[1], null);
+        for(Enemy enemy : testEnemies) {
+            if(enemy.getImageName().equals("null") || false) {
+                g.setColor(Color.GRAY);
+                g.fillRect(enemy.getPosition()[0], enemy.getPosition()[1], enemy.getSize()[0], enemy.getSize()[1]);
+            } else {
+                g.setColor(Color.GRAY);
+                g.fillRect(enemy.getPosition()[0], enemy.getPosition()[1], enemy.getSize()[0], enemy.getSize()[1]);
+            }
+        }
+        //Showing Hitboxes And Hurtboxes
+        if(keys.containsKey("Keys.TAB") && keys.get("Keys.TAB")) {
+            for(Enemy testEnemy : testEnemies) {
+                g.setColor(Color.GREEN);
+                g.fillRect(testEnemy.getHitbox().getPosition()[0], testEnemy.getHitbox().getPosition()[1], testEnemy.getHitbox().getSize()[0], testEnemy.getHitbox().getSize()[1]);
+                g.setColor(Color.RED);
+                g.fillRect(testEnemy.getHurtbox().getPosition()[0], testEnemy.getHurtbox().getPosition()[1], testEnemy.getHurtbox().getSize()[0], testEnemy.getHurtbox().getSize()[1]);
+            }
         }
         //Handles Movement Logic
         double newX = player.getPosition()[0];
@@ -149,6 +169,18 @@ public class Game extends JPanel implements KeyListener, MouseListener{
             GRAVITY += 0.5;
         }
         player.update((int)Math.round(newX), (int)Math.round(newY), player.getSize()[0], player.getSize()[1], player.getDirectionDegrees() + newDeg, player.getImageName(), player.getWalkDir());
+    }
+    public void checkHitboxCollision(Player player, EnemyHitbox hitbox) {
+        int playerX = player.getPosition()[0];
+        int playerY = player.getPosition()[1];
+        int playerW = player.getSize()[0];
+        int playerH = player.getSize()[1];
+        int hitboxX = hitbox.getPosition()[0];
+        int hitboxY = hitbox.getPosition()[1];
+        int hitboxW = hitbox.getSize()[0];
+        if(playerX + playerW > hitboxX && playerX < hitboxX + hitboxW && playerY + playerH > hitboxY) {
+            hitbox.getAttachedEnemy().destroy();
+        }
     }
 }
 class GameObject {
@@ -269,9 +301,11 @@ class Platform extends GameObject {
 }
 class Enemy extends GameObject {
     private EnemyHitbox hitbox;
+    private EnemyHurtbox hurtbox;
     public Enemy(int x, int y, int width, int height, int direction, String fileName, boolean walkDir) {
         super(x, y, width, height, direction, fileName, walkDir);
         this.hitbox = new EnemyHitbox(this, "null");
+        this.hurtbox = new EnemyHurtbox(this, "null");
     }
     public int[] getPosition() {
         return super.getPosition();
@@ -292,10 +326,29 @@ class Enemy extends GameObject {
         super.updateAll(nx, ny, nw, nh, nd, nfName, nwalkDir);
         hitbox.update(super.getPosition()[0], super.getPosition()[1], super.getSize()[0], super.getPosition()[1], super.getDirectionDegrees(), "null");
     }
+    public EnemyHitbox getHitbox() {
+        return this.hitbox;
+    }
+    public EnemyHurtbox getHurtbox() {
+        return this.hurtbox;
+    }
+    public void destroy() {
+        for(int i = 0; i < Game.testEnemies.length; i++) {
+            if(Game.testEnemies[i] == this) {
+                //Takes The Array, Makes A Stream, Filters Out Object That Are This Object, Makes A List, Then Fills A New Array With The List Items.
+                Game.testEnemies = Arrays.stream(Game.testEnemies).filter(val -> val != this).toList().toArray(Enemy[]::new);
+            }
+            //So The Hitboxes Don't Show Up
+            this.hitbox = null;
+            this.hurtbox = null;
+        }
+    }
 }
 class EnemyHitbox extends GameObject {
+    private Enemy enemyToFollow;
     public EnemyHitbox(Enemy enemyToFollow, String fileName) {
-        super(enemyToFollow.getPosition()[0], enemyToFollow.getPosition()[1], enemyToFollow.getSize()[0], enemyToFollow.getSize()[1], enemyToFollow.getDirectionDegrees(), fileName);
+        super(enemyToFollow.getPosition()[0] + 5, enemyToFollow.getPosition()[1] - 5, enemyToFollow.getSize()[0] - 10, 5, enemyToFollow.getDirectionDegrees(), fileName);
+        this.enemyToFollow = enemyToFollow;
     }
     public int[] getPosition() {
         return super.getPosition();
@@ -311,5 +364,33 @@ class EnemyHitbox extends GameObject {
     }
     public void update(int nx, int ny, int nw, int nh, int nd, String nfName) {
         super.updateAll(nx, ny, nw, nh, nd, nfName);
+    }
+    public Enemy getAttachedEnemy() {
+        return this.enemyToFollow;
+    }
+}
+class EnemyHurtbox extends GameObject {
+    private Enemy enemyToFollow;
+    public EnemyHurtbox(Enemy enemy, String fileName) {
+        super(enemy.getPosition()[0], enemy.getPosition()[1], enemy.getSize()[0], enemy.getSize()[1], enemy.getDirectionDegrees(), fileName);
+        this.enemyToFollow = enemy;
+    }
+    public int[] getPosition() {
+        return super.getPosition();
+    }
+    public String getImageName() {
+        return super.getImageName();
+    }
+    public int getDirectionDegrees() {
+        return super.getDirectionDegrees();
+    }
+    public int[] getSize() {
+        return super.getSize();
+    }
+    public void update(int nx, int ny, int nw, int nh, int nd, String nfName) {
+        super.updateAll(nx, ny, nw, nh, nd, nfName);
+    }
+    public Enemy getAttachedEnemy() {
+        return this.enemyToFollow;
     }
 }
