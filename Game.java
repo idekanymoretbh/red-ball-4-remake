@@ -1,9 +1,12 @@
+//TODO: Somehow Figure Out How To Keep Two Total Images From Going To FPS 1
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.security.InvalidParameterException;
 import java.util.HashMap;
-
+import javax.imageio.ImageIO;
 import javax.swing.*;
 public class Game extends JPanel implements KeyListener, MouseListener{
     public static String GLOBAL_TEXTURE_SHEET = "Images/AssetSheet.png";
@@ -15,6 +18,7 @@ public class Game extends JPanel implements KeyListener, MouseListener{
     public Platform[] platforms = {new Platform(0, 907, 875, 50, 0, "null"), new Platform(875, 907, 600, 50, 0, "null")};
     public Player player = new Player(25, 200, 50, 50, 0, "player", true);
     public Enemy testEnemy = new Enemy(600, 857, 50, 50, 0, "enemy", true);
+    public static Graphics2D g2d;
     public Game() {
         frame.setUndecorated(false);
         frame.setResizable(false);
@@ -30,7 +34,7 @@ public class Game extends JPanel implements KeyListener, MouseListener{
             frame.setSize(screenSize);
         }
         this.requestFocus();
-        timer = new Timer(10, e -> {
+        timer = new Timer(16, e -> {
             repaint();
         });
         timer.start();
@@ -80,6 +84,7 @@ public class Game extends JPanel implements KeyListener, MouseListener{
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
+        g2d = (Graphics2D)g.create();
         boolean playerOnGround = false;
         //Draw Platforms
         for(Platform plat : platforms) {
@@ -98,13 +103,24 @@ public class Game extends JPanel implements KeyListener, MouseListener{
         }
         //Handles The Player Sprite
         if(player.getImageName().equals("null")) {
-            g.setColor(Color.BLUE);
-            g.fillRect(player.getPosition()[0], player.getPosition()[1], player.getSize()[0], player.getSize()[1]);
+            g2d.setColor(Color.BLUE);
+            g2d.fillRect(player.getPosition()[0], player.getPosition()[1], player.getSize()[0], player.getSize()[1]);
         } else {
-            g.drawImage(ImageRetriever.rotateImage(ImageRetriever.getImageFromName(player.getImageName()), player.getDirectionDegrees()), player.getPosition()[0], player.getPosition()[1] + 10, null);
+            g2d.setColor(Color.BLUE);
+            g2d.rotate(Math.toRadians(player.getDirectionDegrees()), player.getPosition()[0] + 25, player.getPosition()[1] + 25);
+            g2d.fillRect(player.getPosition()[0], player.getPosition()[1], player.getSize()[0], player.getSize()[1]);
+            g2d.dispose();
+            //g.drawImage(ImageRetriever.rotateImage(playerImage, player.getDirectionDegrees()), player.getPosition()[0], player.getPosition()[1] + 10, null);
         }
         //Handles Enemy Sprite
-
+        if(testEnemy.getImageName().equals("null") || false/*ImageRetriever.getImageFromName(testEnemy.getImageName()) == null*/) {
+            g.setColor(Color.GRAY);
+            g.fillRect(testEnemy.getPosition()[0], testEnemy.getPosition()[1], testEnemy.getSize()[0], testEnemy.getSize()[1]);
+        } else {
+            g.setColor(Color.GRAY);
+            g.fillRect(testEnemy.getPosition()[0], testEnemy.getPosition()[1], testEnemy.getSize()[0], testEnemy.getSize()[1]);
+            //g.drawImage(ImageRetriever.getImageFromName(testEnemy.getImageName()), testEnemy.getPosition()[0], testEnemy.getPosition()[1], null);
+        }
         //Handles Movement Logic
         double newX = player.getPosition()[0];
         double newY = player.getPosition()[1];
@@ -118,7 +134,7 @@ public class Game extends JPanel implements KeyListener, MouseListener{
         } if(keys.containsKey("Keys.D") && keys.get("Keys.D")) {
             xVel += 0.25;
             xVel = Math.clamp(xVel, -6, 6);
-        } if((!(keys.containsKey("Keys.A") && keys.get("Keys.A"))) && (!(keys.containsKey("Keys.D") && keys.get("Keys.D")))) {
+        } if((!(keys.containsKey("Keys.A") && keys.get("Keys.A"))) && (!(keys.containsKey("Keys.D") && keys.get("Keys.D"))) && playerOnGround) {
             xVel /= 1.125;
         } if(xVel < 0.25 && xVel > 0) {
             xVel = 0;
@@ -295,48 +311,5 @@ class EnemyHitbox extends GameObject {
     }
     public void update(int nx, int ny, int nw, int nh, int nd, String nfName) {
         super.updateAll(nx, ny, nw, nh, nd, nfName);
-    }
-}
-class ImageRetriever {
-    //Never Instantiate This Class
-    private ImageRetriever() {}
-    public static BufferedImage getImageFromName(String name) {
-        Image img = Toolkit.getDefaultToolkit().getImage(Game.GLOBAL_TEXTURE_SHEET);
-        switch(name) {
-            case "null":
-                return null;
-            case "player":
-                if(img.getWidth(null) != -1 && img.getHeight(null) != -1) {
-                    BufferedImage bi = new BufferedImage(img.getWidth(null), img.getHeight(null), BufferedImage.TYPE_INT_ARGB);
-                    Graphics2D bGr = bi.createGraphics();
-                    bGr.drawImage(img, 0, 0, null);
-                    bGr.dispose();
-                    return bi.getSubimage(1, 1, 40, 40);
-                }
-                return null;
-            case "enemy":
-                if(img.getWidth(null) != -1 && img.getHeight(null) != -1) {
-                    BufferedImage bui = new BufferedImage(img.getWidth(null), img.getHeight(null), BufferedImage.TYPE_INT_ARGB);
-                    Graphics2D bGr2 = bui.createGraphics();
-                    bGr2.drawImage(img, 0, 0, null);
-                    bGr2.dispose();
-                    return bui.getSubimage(45, 1, 40, 40);
-                }
-                return null;
-            default:
-                throw new InvalidParameterException("IDEK What U Did");
-        }
-    }
-    public static BufferedImage rotateImage(BufferedImage img, double degrees) {
-        if(img != null) {
-            double radians = Math.toRadians(degrees);
-            BufferedImage bi = new BufferedImage(img.getWidth(), img.getHeight(), img.getType());
-            Graphics2D bGr = bi.createGraphics();
-            bGr.rotate(radians, img.getWidth() / 2, img.getHeight() / 2);
-            bGr.drawImage(img, 0, 0, null);
-            bGr.dispose();
-            return bi;
-        }
-        return null;
     }
 }
