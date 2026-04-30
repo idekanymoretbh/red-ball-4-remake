@@ -15,7 +15,7 @@ public class Game extends JPanel implements KeyListener, MouseListener{
     public double GRAVITY = 2;
     public double xVel = 0;
     public Timer timer;
-    public JFrame frame = new JFrame("Red Ball 4: Reinvented");
+    public JFrame frame = new JFrame("Red Ball 4: Remake");
     public Platform[] platforms = {new Platform(0, 907, 875, 50, 0, "null"), new Platform(875, 907, 600, 50, 0, "null")};
     public Player player = new Player(25, 200, 50, 50, 0, "player", true);
     public static Enemy[] testEnemies = {new Enemy(600, 857, 50, 50, 0, "enemy", true)};
