@@ -1,2 +1,2 @@
 # Red-Ball-4-Remake
-A Remake Of Red Ball 4 That Runs Entirely On PC. IDEK If That Already Exists...
+A Remake Of Red Ball 4 That Runs Entirely On PC. It Completely Changes Everything, From Simple Enemies, To Entire Worlds And Bosses. Travel Through The Worlds As A Red Sphere That Craves Adrenaline And The High Of Danger. Run (Or, More Accurately, Roll) Through Familiar Levels, Except With New Mechanics And Structures. Try And Get All The Achievements, Though They WILL Be Tricky.
